@@ -551,20 +551,17 @@ export default function Home() {
   );
 
   return (
-    <div className="w-full max-w-7xl mx-auto px-4 py-8 text-zinc-800 font-sans bg-zinc-50 min-h-screen">
+    <div className="w-full max-w-7xl mx-auto px-4 py-8 text-zinc-800 font-sansmin-h-screen">
       {/* Page Title */}
       <header className="flex flex-col md:flex-row md:items-center justify-between border-b border-zinc-200 pb-6 mb-8 gap-4">
         <div>
           <div className="flex flex-col sm:flex-row sm:items-center gap-2">
             <h1 className="text-3xl font-extrabold tracking-tight bg-gradient-to-r from-emerald-600 via-cyan-600 to-blue-700 bg-clip-text text-transparent">
-              FACIAL RECOGNITION SYSTEM
+              FACIAL RECOGNITION SYSTEM - PROJEK KELOMPOK 4
             </h1>
-            <span className="inline-block self-start text-[10px] font-extrabold font-mono px-2.5 py-0.5 rounded-full bg-cyan-50 border border-cyan-200 text-cyan-700 shadow-sm sm:mt-1">
-              PROJEK KELOMPOK 4
-            </span>
           </div>
           <p className="text-sm text-zinc-500 mt-1 font-mono">
-            Sistem Deteksi Kehadiran Mahasiswa Real-Time Berbasis AI
+            Sistem Deteksi Wajah Mahasiswa Realtime
           </p>
         </div>
 
