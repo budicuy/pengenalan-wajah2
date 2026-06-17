@@ -14,14 +14,6 @@ interface Student {
   url: string;
 }
 
-interface LogItem {
-  id: string;
-  name: string;
-  timestamp: string;
-  confidence: number;
-  photoUrl?: string;
-}
-
 type ProcessStatus =
   | "idle"
   | "loading-models"
@@ -36,7 +28,7 @@ export default function Home() {
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const requestRef = useRef<number | null>(null);
-  const lastLogged = useRef<Record<string, number>>({});
+  const containerRef = useRef<HTMLDivElement>(null);
 
   // States
   const [status, setStatus] = useState<ProcessStatus>("idle");
@@ -51,14 +43,13 @@ export default function Home() {
   const [faceMatcher, setFaceMatcher] =
     useState<FaceApiType.FaceMatcher | null>(null);
 
-  const [logs, setLogs] = useState<LogItem[]>([]);
   const [isDetecting, setIsDetecting] = useState<boolean>(false);
   const [cameraActive, setCameraActive] = useState<boolean>(false);
+  const [isFullscreen, setIsFullscreen] = useState<boolean>(false);
 
   // Settings States
   const [devices, setDevices] = useState<MediaDeviceInfo[]>([]);
   const [selectedDevice, setSelectedDevice] = useState<string>("");
-  const [detectorType, setDetectorType] = useState<"ssd" | "tiny">("tiny"); // tiny is much smoother for real-time
   const [threshold, setThreshold] = useState<number>(0.5); // Euclidean distance (lower = stricter match)
   const [showLandmarks, setShowLandmarks] = useState<boolean>(true);
   const [searchQuery, setSearchQuery] = useState<string>("");
@@ -83,6 +74,36 @@ export default function Home() {
           console.error("Error listing camera devices:", err);
         });
     }
+  }, []);
+
+  // Toggle Fullscreen
+  const toggleFullscreen = () => {
+    if (!containerRef.current) return;
+
+    if (!document.fullscreenElement) {
+      containerRef.current
+        .requestFullscreen()
+        .then(() => {
+          setIsFullscreen(true);
+        })
+        .catch((err) => {
+          console.error("Error enabling fullscreen:", err);
+        });
+    } else {
+      document.exitFullscreen();
+      setIsFullscreen(false);
+    }
+  };
+
+  // Fullscreen change listener to sync state when using Esc key
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      setIsFullscreen(!!document.fullscreenElement);
+    };
+    document.addEventListener("fullscreenchange", handleFullscreenChange);
+    return () => {
+      document.removeEventListener("fullscreenchange", handleFullscreenChange);
+    };
   }, []);
 
   // Initialize models and dataset
@@ -121,7 +142,6 @@ export default function Home() {
       // Load model weights from public folder
       const MODEL_URL = "/models";
       await faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL);
-      await faceapi.nets.ssdMobilenetv1.loadFromUri(MODEL_URL);
       await faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL);
       await faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL);
 
@@ -246,11 +266,14 @@ export default function Home() {
           // Load image using face-api utility
           const img = await faceapi.fetchImage(photo.url);
 
-          // Detect single face and compute features
+          // Detect single face and compute features using Tiny Face Detector
           const detection = await faceapi
             .detectSingleFace(
               img,
-              new faceapi.SsdMobilenetv1Options({ minConfidence: 0.5 }),
+              new faceapi.TinyFaceDetectorOptions({
+                inputSize: 224,
+                scoreThreshold: 0.4,
+              }),
             )
             .withFaceLandmarks()
             .withFaceDescriptor();
@@ -296,19 +319,6 @@ export default function Home() {
     localStorage.setItem(cacheKey, JSON.stringify(serializedCache));
 
     return loadedDescriptors;
-  };
-
-  const resetCache = async () => {
-    if (
-      confirm(
-        "Apakah Anda yakin ingin menghapus cache deskriptor wajah dan mengekstrak ulang dari dataset gambar?",
-      )
-    ) {
-      const cacheKey = "face-recognition-dataset-cache-v2";
-      localStorage.removeItem(cacheKey);
-      stopCamera();
-      initSystem();
-    }
   };
 
   // Start Webcam
@@ -401,20 +411,11 @@ export default function Home() {
         height: video.videoHeight,
       };
 
-      // Choose detection options
-      let detectionOptions:
-        | FaceApiType.TinyFaceDetectorOptions
-        | FaceApiType.SsdMobilenetv1Options;
-      if (detectorType === "tiny") {
-        detectionOptions = new faceapi.TinyFaceDetectorOptions({
-          inputSize: 224,
-          scoreThreshold: 0.4,
-        });
-      } else {
-        detectionOptions = new faceapi.SsdMobilenetv1Options({
-          minConfidence: 0.5,
-        });
-      }
+      // Use Tiny Face Detector
+      const detectionOptions = new faceapi.TinyFaceDetectorOptions({
+        inputSize: 224,
+        scoreThreshold: 0.4,
+      });
 
       // Perform detections
       const detections = await faceapi
@@ -537,44 +538,11 @@ export default function Home() {
           ctx.fillText(labelText, -textWidth / 2, 2);
 
           ctx.restore();
-
-          // Add to log if recognized
-          if (!isUnknown && confidence >= threshold * 100) {
-            logRecognition(match.label, confidence);
-          }
         });
       }
     }
 
     requestRef.current = requestAnimationFrame(detectFrame);
-  };
-
-  const logRecognition = (name: string, confidence: number) => {
-    const now = Date.now();
-    const lastTime = lastLogged.current[name] || 0;
-
-    // Cooldown 8 seconds to prevent flooding log table
-    if (now - lastTime > 8000) {
-      lastLogged.current[name] = now;
-
-      const matchedStudent = dataset.find((s) => s.label === name);
-      const timestamp = new Date().toLocaleTimeString("id-ID", {
-        hour: "2-digit",
-        minute: "2-digit",
-        second: "2-digit",
-      });
-
-      setLogs((prev) => [
-        {
-          id: Math.random().toString(36).substring(2, 9),
-          name,
-          timestamp,
-          confidence,
-          photoUrl: matchedStudent?.url,
-        },
-        ...prev.slice(0, 49), // Limit to 50 logs
-      ]);
-    }
   };
 
   // Filter students based on search query
@@ -627,7 +595,10 @@ export default function Home() {
         {/* LEFT COLUMN: Camera Feed & Controls (7 Cols) */}
         <div className="lg:col-span-7 flex flex-col gap-6">
           {/* CAMERA FEED BOX */}
-          <div className="relative aspect-video w-full rounded-2xl overflow-hidden bg-zinc-100 border border-zinc-200 shadow-md flex flex-col items-center justify-center group">
+          <div
+            ref={containerRef}
+            className="relative aspect-video w-full rounded-2xl overflow-hidden bg-zinc-100 border border-zinc-200 shadow-md flex flex-col items-center justify-center group"
+          >
             {/* Hologram/Scanner lines */}
             {cameraActive && (
               <div className="absolute inset-0 pointer-events-none border border-emerald-500/20 rounded-2xl overflow-hidden z-10">
@@ -654,6 +625,39 @@ export default function Home() {
                 cameraActive ? "block" : "hidden"
               }`}
             />
+
+            {/* Fullscreen Button */}
+            {cameraActive && (
+              <button
+                onClick={toggleFullscreen}
+                type="button"
+                className="absolute bottom-4 right-4 z-30 p-2.5 bg-black/60 hover:bg-black/85 text-white rounded-xl backdrop-blur-sm transition-all shadow-md hover:scale-105"
+                title={isFullscreen ? "Keluar Layar Penuh" : "Layar Penuh"}
+              >
+                <svg
+                  className="w-5 h-5"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  {isFullscreen ? (
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M4 14h6v6m10-6h-6v6M4 10h6V4m10 6h-6V4"
+                    />
+                  ) : (
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M4 8V4h4m12 4V4h-4M4 16v4h4m12-4v4h-4"
+                    />
+                  )}
+                </svg>
+              </button>
+            )}
 
             {/* Camera Offline Placeholder */}
             {!cameraActive && (
@@ -799,27 +803,6 @@ export default function Home() {
                       </svg>
                       {cameraActive ? "NONAKTIFKAN" : "AKTIFKAN KAMERA"}
                     </button>
-
-                    <button
-                      onClick={resetCache}
-                      disabled={status !== "ready"}
-                      title="Reset database wajah lokal (hapus cache)"
-                      className="p-2.5 bg-zinc-50 border border-zinc-200 hover:bg-zinc-100 rounded-xl transition-colors text-zinc-600 disabled:opacity-50"
-                    >
-                      <svg
-                        className="w-5 h-5"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M4 4v5h.582m15.356 2A8.001 8.001 0 1121.21 7.89M9 11l3-3 3 3m-3-3v12"
-                        />
-                      </svg>
-                    </button>
                   </div>
                 </div>
 
@@ -851,35 +834,6 @@ export default function Home() {
 
               {/* Right Column Controls */}
               <div className="flex flex-col gap-4">
-                {/* Detector Type Selector */}
-                <div className="flex flex-col gap-1.5">
-                  <label className="text-xs font-mono text-zinc-500 uppercase tracking-wider">
-                    Model Detektor Wajah
-                  </label>
-                  <div className="grid grid-cols-2 gap-2">
-                    <button
-                      onClick={() => setDetectorType("tiny")}
-                      className={`py-2 px-3 border rounded-xl text-xs font-mono font-semibold transition-all duration-300 ${
-                        detectorType === "tiny"
-                          ? "bg-cyan-50 border-cyan-500 text-cyan-600 shadow-sm"
-                          : "bg-zinc-50 border-zinc-200 text-zinc-500 hover:border-zinc-300"
-                      }`}
-                    >
-                      TINY DETECTOR (Cepat)
-                    </button>
-                    <button
-                      onClick={() => setDetectorType("ssd")}
-                      className={`py-2 px-3 border rounded-xl text-xs font-mono font-semibold transition-all duration-300 ${
-                        detectorType === "ssd"
-                          ? "bg-cyan-50 border-cyan-500 text-cyan-600 shadow-sm"
-                          : "bg-zinc-50 border-zinc-200 text-zinc-500 hover:border-zinc-300"
-                      }`}
-                    >
-                      SSD MOBILENET (Akurat)
-                    </button>
-                  </div>
-                </div>
-
                 {/* Matcher Threshold */}
                 <div className="flex flex-col gap-1.5">
                   <div className="flex justify-between items-center">
@@ -937,7 +891,7 @@ export default function Home() {
         {/* RIGHT COLUMN: Dataset List & Logs (5 Cols) */}
         <div className="lg:col-span-5 flex flex-col gap-6">
           {/* TAB SYSTEM: DATASET MAHASISWA & LOG RIWAYAT */}
-          <div className="flex flex-col flex-1 bg-white border border-zinc-200 rounded-2xl overflow-hidden shadow-sm min-h-[550px] max-h-[600px]">
+          <div className="flex flex-col flex-1 bg-white border border-zinc-200 rounded-2xl overflow-hidden shadow-sm min-h-[670px] max-h-[710px]">
             {/* Headers / Navigation */}
             <div className="flex bg-zinc-50 border-b border-zinc-200 p-2 gap-2">
               <div className="flex-1 text-center py-2 px-3 bg-white rounded-xl border border-zinc-200/80 shadow-sm">
@@ -1038,78 +992,6 @@ export default function Home() {
                   })
                 )}
               </div>
-            </div>
-          </div>
-
-          {/* PRESENCE LOGS CARD */}
-          <div className="flex flex-col flex-1 bg-white border border-zinc-200 rounded-2xl overflow-hidden shadow-sm min-h-[350px] max-h-[400px]">
-            <div className="bg-zinc-50 border-b border-zinc-200 p-4 flex justify-between items-center">
-              <h2 className="text-sm font-bold font-mono tracking-wider text-emerald-600 uppercase flex items-center gap-2">
-                <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-ping" />
-                RIWAYAT PRESENSI KEHADIRAN (LIVE)
-              </h2>
-              {logs.length > 0 && (
-                <button
-                  onClick={() => setLogs([])}
-                  className="text-[10px] font-bold font-mono hover:text-red-500 text-zinc-400 uppercase transition-colors"
-                >
-                  CLEAR LOG
-                </button>
-              )}
-            </div>
-
-            <div className="flex-1 p-4 overflow-y-auto flex flex-col gap-2">
-              {logs.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-16 text-zinc-400 font-mono text-xs h-full">
-                  <span>Belum ada wajah mahasiswa terdeteksi</span>
-                  <span className="text-[10px] text-zinc-400 mt-1">
-                    Nyalakan kamera & dekatkan wajah ke lensa
-                  </span>
-                </div>
-              ) : (
-                logs.map((log) => (
-                  <div
-                    key={log.id}
-                    className="flex items-center justify-between p-2.5 bg-zinc-50 border border-zinc-100 rounded-xl animate-[fadeIn_0.3s_ease-out] shadow-sm"
-                  >
-                    <div className="flex items-center gap-3">
-                      {/* Student Profile Thumbnail */}
-                      <div className="w-8 h-8 rounded-lg overflow-hidden bg-zinc-100 border border-zinc-200 flex-shrink-0 relative">
-                        {log.photoUrl && (
-                          <Image
-                            src={log.photoUrl}
-                            alt={log.name}
-                            width={32}
-                            height={32}
-                            className="object-cover w-full h-full"
-                          />
-                        )}
-                      </div>
-
-                      <div>
-                        <span className="text-xs font-semibold text-zinc-800 block">
-                          {log.name}
-                        </span>
-                        <span className="text-[9px] text-zinc-500 font-mono block">
-                          Kemiripan:{" "}
-                          <span className="text-emerald-600 font-bold">
-                            {log.confidence}%
-                          </span>
-                        </span>
-                      </div>
-                    </div>
-
-                    <div className="text-right">
-                      <span className="text-[10px] font-bold font-mono px-2 py-0.5 rounded-lg bg-emerald-50 border border-emerald-200/50 text-emerald-600 block">
-                        HADIR
-                      </span>
-                      <span className="text-[9px] text-zinc-400 font-mono block mt-0.5">
-                        {log.timestamp}
-                      </span>
-                    </div>
-                  </div>
-                ))
-              )}
             </div>
           </div>
         </div>
@@ -1220,6 +1102,16 @@ export default function Home() {
         @keyframes fadeIn {
           from { opacity: 0; transform: scale(0.95); }
           to { opacity: 1; transform: scale(1); }
+        }
+        .relative:fullscreen {
+          max-width: 100vw;
+          max-height: 100vh;
+          width: 100vw;
+          height: 100vh;
+          aspect-ratio: auto;
+          border-radius: 0;
+          border: none;
+          background-color: #000;
         }
       `,
         }}
