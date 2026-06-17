@@ -515,19 +515,27 @@ export default function FaceRecognition() {
           const nameText = isUnknown ? "TIDAK DIKENAL" : match.label;
           const confidenceText = isUnknown ? "" : ` [${confidence}%]`;
 
-          ctx.font = "bold 12px monospace";
+          ctx.font = "bold 16px monospace";
           const labelText = `${nameText}${confidenceText}`;
           const textWidth = ctx.measureText(labelText).width;
 
-          // Draw label background
+          // Save context, translate to middle of label block, and flip horizontally.
+          // This cancels out the CSS scale-x(-1) mirror for the text!
+          ctx.save();
+          ctx.translate(x + textWidth / 2 + 8, y - 12);
+          ctx.scale(-1, 1);
+
+          // Draw label background centered at (0, 0)
           ctx.fillStyle = color;
           ctx.beginPath();
-          ctx.roundRect(x, y - 24, textWidth + 16, 20, [4, 4, 0, 0]);
+          ctx.roundRect(-textWidth / 2 - 8, -16, textWidth + 16, 24, 4);
           ctx.fill();
 
-          // Draw label text
+          // Draw label text centered at (0, 0)
           ctx.fillStyle = "#ffffff";
-          ctx.fillText(labelText, x + 8, y - 9);
+          ctx.fillText(labelText, -textWidth / 2, 2);
+
+          ctx.restore();
 
           // Add to log if recognized
           if (!isUnknown && confidence >= threshold * 100) {
