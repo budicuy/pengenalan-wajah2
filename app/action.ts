@@ -1,17 +1,21 @@
+"use server";
+
 import fs from "node:fs";
 import path from "node:path";
-import { NextResponse } from "next/server";
 
-export async function GET() {
+interface Student {
+  filename: string;
+  label: string;
+  url: string;
+}
+
+export async function getDataset() {
   try {
     const datasetDir = path.join(process.cwd(), "public", "dataset");
 
     // Check if dataset directory exists
     if (!fs.existsSync(datasetDir)) {
-      return NextResponse.json(
-        { error: "Dataset directory not found" },
-        { status: 404 },
-      );
+      return { error: "Dataset directory not found", data: [] as Student[] };
     }
 
     const files = fs.readdirSync(datasetDir);
@@ -40,12 +44,12 @@ export async function GET() {
     // Sort dataset alphabetically by label
     dataset.sort((a, b) => a.label.localeCompare(b.label));
 
-    return NextResponse.json(dataset);
+    return { data: dataset };
   } catch (error: any) {
     console.error("Error reading dataset directory:", error);
-    return NextResponse.json(
-      { error: "Internal Server Error", details: error.message },
-      { status: 500 },
-    );
+    return {
+      error: error.message || "Internal Server Error",
+      data: [] as Student[],
+    };
   }
 }
