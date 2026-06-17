@@ -99,12 +99,6 @@ export default function FaceRecognition() {
   const rebuildFaceMatcherWithThreshold = (
     descriptors: faceapi.LabeledFaceDescriptors[],
   ) => {
-    // FaceMatcher accepts maxDistance in the constructor
-    // maxDistance: 1 - threshold (since threshold is confidence, distance threshold is 1 - confidence)
-    // Actually face-api distance is Euclidean distance:
-    // 0 is identical, 1 is completely different.
-    // Slider threshold is confidence (0.4 - 0.8). Let's convert confidence to distance threshold.
-    // Distance threshold = 1 - confidence. E.g., 60% confidence threshold = 0.4 distance threshold.
     const distanceThreshold = 1 - threshold;
     const matcher = new faceapi.FaceMatcher(descriptors, distanceThreshold);
     setFaceMatcher(matcher);
@@ -244,7 +238,6 @@ export default function FaceRecognition() {
           const img = await faceapi.fetchImage(photo.url);
 
           // Detect single face and compute features
-          // SSD Mobilenet v1 is more accurate for extracting database features
           const detection = await faceapi
             .detectSingleFace(
               img,
@@ -446,7 +439,6 @@ export default function FaceRecognition() {
           const { descriptor, detection: det } = detection;
 
           // Re-evaluate distance threshold inside matching logic
-          // faceMatcher was constructed with 1 - threshold
           const match = faceMatcher.findBestMatch(descriptor);
 
           const box = det.box;
@@ -582,20 +574,20 @@ export default function FaceRecognition() {
   );
 
   return (
-    <div className="w-full max-w-7xl mx-auto px-4 py-8 text-zinc-100 font-sans">
+    <div className="w-full max-w-7xl mx-auto px-4 py-8 text-zinc-800 font-sans bg-zinc-50 min-h-screen">
       {/* Page Title */}
-      <header className="flex flex-col md:flex-row md:items-center justify-between border-b border-zinc-800 pb-6 mb-8 gap-4">
+      <header className="flex flex-col md:flex-row md:items-center justify-between border-b border-zinc-200 pb-6 mb-8 gap-4">
         <div>
-          <h1 className="text-3xl font-extrabold tracking-tight bg-gradient-to-r from-emerald-400 via-cyan-400 to-blue-500 bg-clip-text text-transparent">
+          <h1 className="text-3xl font-extrabold tracking-tight bg-gradient-to-r from-emerald-600 via-cyan-600 to-blue-700 bg-clip-text text-transparent">
             FACIAL RECOGNITION SYSTEM
           </h1>
-          <p className="text-sm text-zinc-400 mt-1 font-mono">
+          <p className="text-sm text-zinc-500 mt-1 font-mono">
             Sistem Deteksi Kehadiran Mahasiswa Real-Time Berbasis AI
           </p>
         </div>
 
         {/* Status Indicator */}
-        <div className="flex items-center gap-3 bg-zinc-900/80 border border-zinc-800 px-4 py-2 rounded-xl backdrop-blur-md">
+        <div className="flex items-center gap-3 bg-white border border-zinc-200 px-4 py-2 rounded-xl shadow-sm">
           <span
             className={`w-3 h-3 rounded-full animate-pulse ${
               status === "ready" && cameraActive
@@ -608,10 +600,10 @@ export default function FaceRecognition() {
             }`}
           />
           <div className="text-xs font-mono">
-            <span className="text-zinc-500 block uppercase tracking-wider text-[9px]">
+            <span className="text-zinc-400 block uppercase tracking-wider text-[9px]">
               SISTEM STATUS
             </span>
-            <span className="text-zinc-300 font-semibold">{statusMessage}</span>
+            <span className="text-zinc-700 font-semibold">{statusMessage}</span>
           </div>
         </div>
       </header>
@@ -621,11 +613,11 @@ export default function FaceRecognition() {
         {/* LEFT COLUMN: Camera Feed & Controls (7 Cols) */}
         <div className="lg:col-span-7 flex flex-col gap-6">
           {/* CAMERA FEED BOX */}
-          <div className="relative aspect-video w-full rounded-2xl overflow-hidden bg-zinc-950 border border-zinc-800 shadow-2xl flex flex-col items-center justify-center group">
+          <div className="relative aspect-video w-full rounded-2xl overflow-hidden bg-zinc-100 border border-zinc-200 shadow-md flex flex-col items-center justify-center group">
             {/* Hologram/Scanner lines */}
             {cameraActive && (
               <div className="absolute inset-0 pointer-events-none border border-emerald-500/20 rounded-2xl overflow-hidden z-10">
-                <div className="w-full h-[2px] bg-gradient-to-r from-transparent via-cyan-500/30 to-transparent absolute animate-[scan_3s_linear_infinite]" />
+                <div className="w-full h-[2px] bg-gradient-to-r from-transparent via-cyan-500/35 to-transparent absolute animate-[scan_3s_linear_infinite]" />
               </div>
             )}
 
@@ -636,13 +628,17 @@ export default function FaceRecognition() {
               muted
               playsInline
               onPlay={handleVideoPlay}
-              className={`w-full h-full object-cover transform scale-x-[-1] ${cameraActive ? "block" : "hidden"}`}
+              className={`w-full h-full object-cover transform scale-x-[-1] ${
+                cameraActive ? "block" : "hidden"
+              }`}
             />
 
             {/* Drawing Canvas Overlays */}
             <canvas
               ref={canvasRef}
-              className={`absolute top-0 left-0 w-full h-full transform scale-x-[-1] z-20 ${cameraActive ? "block" : "hidden"}`}
+              className={`absolute top-0 left-0 w-full h-full transform scale-x-[-1] z-20 ${
+                cameraActive ? "block" : "hidden"
+              }`}
             />
 
             {/* Camera Offline Placeholder */}
@@ -651,39 +647,39 @@ export default function FaceRecognition() {
                 {status === "processing-dataset" ? (
                   <div className="flex flex-col items-center gap-4">
                     {/* Spinning loader */}
-                    <div className="w-16 h-16 border-4 border-cyan-500/20 border-t-cyan-400 rounded-full animate-spin" />
+                    <div className="w-16 h-16 border-4 border-cyan-500/20 border-t-cyan-500 rounded-full animate-spin" />
                     <div className="text-sm font-mono max-w-sm">
-                      <span className="text-cyan-400 font-bold block mb-1">
+                      <span className="text-cyan-600 font-bold block mb-1">
                         Mengekstrak Fitur Wajah...
                       </span>
-                      <span className="text-zinc-400 block text-xs">
+                      <span className="text-zinc-500 block text-xs">
                         Mengindeks foto mahasiswa ke database AI lokal. Proses
                         ini hanya berjalan satu kali.
                       </span>
                       {progress.total > 0 && (
-                        <div className="mt-3 w-full bg-zinc-800 rounded-full h-2 overflow-hidden">
+                        <div className="mt-3 w-full bg-zinc-200 rounded-full h-2 overflow-hidden">
                           <div
-                            className="bg-gradient-to-r from-cyan-400 to-blue-500 h-full transition-all duration-300"
+                            className="bg-gradient-to-r from-cyan-500 to-blue-600 h-full transition-all duration-300"
                             style={{
                               width: `${(progress.current / progress.total) * 100}%`,
                             }}
                           />
                         </div>
                       )}
-                      <span className="text-[10px] text-zinc-500 font-mono mt-1 block">
+                      <span className="text-[10px] text-zinc-400 font-mono mt-1 block">
                         {progress.current} / {progress.total} : {progress.label}
                       </span>
                     </div>
                   </div>
                 ) : status === "loading-models" ? (
                   <div className="flex flex-col items-center gap-4">
-                    <div className="w-12 h-12 border-4 border-zinc-800 border-t-amber-400 rounded-full animate-spin" />
-                    <span className="text-sm font-mono text-zinc-400">
+                    <div className="w-12 h-12 border-4 border-zinc-200 border-t-amber-500 rounded-full animate-spin" />
+                    <span className="text-sm font-mono text-zinc-500">
                       Memuat Model Pembelajaran Mesin...
                     </span>
                   </div>
                 ) : status === "error" ? (
-                  <div className="flex flex-col items-center text-red-400 gap-3">
+                  <div className="flex flex-col items-center text-red-500 gap-3">
                     <svg
                       className="w-12 h-12"
                       fill="none"
@@ -700,17 +696,17 @@ export default function FaceRecognition() {
                     <span className="text-sm font-mono">{statusMessage}</span>
                     <button
                       onClick={initSystem}
-                      className="mt-2 px-4 py-2 bg-zinc-800 border border-zinc-700 hover:bg-zinc-700 rounded-xl text-xs font-semibold"
+                      className="mt-2 px-4 py-2 bg-white border border-zinc-200 hover:bg-zinc-50 text-zinc-700 rounded-xl text-xs font-semibold shadow-sm"
                     >
                       Coba Lagi
                     </button>
                   </div>
                 ) : (
                   <div
-                    className="flex flex-col items-center gap-4 cursor-pointer"
+                    className="flex flex-col items-center gap-4 cursor-pointer group/cam"
                     onClick={() => startCamera(selectedDevice)}
                   >
-                    <div className="w-20 h-20 rounded-full bg-zinc-900 border border-zinc-800 flex items-center justify-center text-zinc-600 group-hover:text-emerald-400 group-hover:border-emerald-500/50 group-hover:shadow-[0_0_15px_rgba(16,185,129,0.1)] transition-all duration-300">
+                    <div className="w-20 h-20 rounded-full bg-white border border-zinc-200 flex items-center justify-center text-zinc-400 group-hover/cam:text-emerald-600 group-hover/cam:border-emerald-500/50 group-hover/cam:shadow-[0_0_15px_rgba(16,185,129,0.08)] transition-all duration-300 shadow-sm">
                       <svg
                         className="w-10 h-10"
                         fill="none"
@@ -725,7 +721,7 @@ export default function FaceRecognition() {
                         />
                       </svg>
                     </div>
-                    <span className="text-sm font-semibold tracking-wider font-mono text-zinc-500 group-hover:text-zinc-300 transition-colors">
+                    <span className="text-sm font-semibold tracking-wider font-mono text-zinc-400 group-hover/cam:text-zinc-600 transition-colors">
                       KLIK UNTUK MENGAKTIFKAN KAMERA
                     </span>
                   </div>
@@ -733,13 +729,13 @@ export default function FaceRecognition() {
               </div>
             )}
 
-            {/* Grid overlay for cyberpunk feel */}
-            <div className="absolute inset-0 bg-[linear-gradient(to_right,rgba(255,255,255,0.01)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.01)_1px,transparent_1px)] bg-[size:24px_24px] pointer-events-none" />
+            {/* Grid overlay */}
+            <div className="absolute inset-0 bg-[linear-gradient(to_right,rgba(0,0,0,0.015)_1px,transparent_1px),linear-gradient(to_bottom,rgba(0,0,0,0.015)_1px,transparent_1px)] bg-[size:24px_24px] pointer-events-none" />
           </div>
 
           {/* CONTROLS CARD */}
-          <div className="bg-zinc-900/60 border border-zinc-800 rounded-2xl p-6 backdrop-blur-md">
-            <h2 className="text-lg font-bold font-mono tracking-wider border-b border-zinc-800 pb-3 mb-4 text-zinc-300">
+          <div className="bg-white border border-zinc-200 rounded-2xl p-6 shadow-sm">
+            <h2 className="text-lg font-bold font-mono tracking-wider border-b border-zinc-100 pb-3 mb-4 text-zinc-800">
               KONTROL & PARAMETER
             </h2>
 
@@ -748,7 +744,7 @@ export default function FaceRecognition() {
               <div className="flex flex-col gap-4">
                 {/* Camera Toggle */}
                 <div className="flex flex-col gap-2">
-                  <label className="text-xs font-mono text-zinc-400 uppercase tracking-wider">
+                  <label className="text-xs font-mono text-zinc-500 uppercase tracking-wider">
                     Kamera Feed
                   </label>
                   <div className="flex gap-2">
@@ -761,8 +757,8 @@ export default function FaceRecognition() {
                       disabled={status !== "ready"}
                       className={`flex-1 py-2.5 px-4 rounded-xl font-bold font-mono transition-all duration-300 flex items-center justify-center gap-2 border text-sm ${
                         cameraActive
-                          ? "bg-red-500/10 border-red-500/30 text-red-400 hover:bg-red-500/20"
-                          : "bg-emerald-500/10 border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/20"
+                          ? "bg-red-50 border-red-200 text-red-600 hover:bg-red-100/80"
+                          : "bg-emerald-50 border-emerald-200 text-emerald-600 hover:bg-emerald-100/80"
                       }`}
                     >
                       <svg
@@ -794,7 +790,7 @@ export default function FaceRecognition() {
                       onClick={resetCache}
                       disabled={status !== "ready"}
                       title="Reset database wajah lokal (hapus cache)"
-                      className="p-2.5 bg-zinc-800 border border-zinc-700 hover:bg-zinc-700 rounded-xl transition-colors text-zinc-300 disabled:opacity-50"
+                      className="p-2.5 bg-zinc-50 border border-zinc-200 hover:bg-zinc-100 rounded-xl transition-colors text-zinc-600 disabled:opacity-50"
                     >
                       <svg
                         className="w-5 h-5"
@@ -815,7 +811,7 @@ export default function FaceRecognition() {
 
                 {/* Camera Input Selection */}
                 <div className="flex flex-col gap-1.5">
-                  <label className="text-xs font-mono text-zinc-400 uppercase tracking-wider">
+                  <label className="text-xs font-mono text-zinc-500 uppercase tracking-wider">
                     Pilih Kamera
                   </label>
                   <select
@@ -824,7 +820,7 @@ export default function FaceRecognition() {
                       setSelectedDevice(e.target.value);
                       if (cameraActive) startCamera(e.target.value);
                     }}
-                    className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2 text-sm text-zinc-300 focus:outline-none focus:border-cyan-500 font-mono"
+                    className="w-full bg-zinc-50 border border-zinc-200 rounded-xl px-3 py-2 text-sm text-zinc-700 focus:outline-none focus:border-cyan-500 font-mono shadow-sm"
                   >
                     {devices.length === 0 ? (
                       <option value="">Default Camera</option>
@@ -843,7 +839,7 @@ export default function FaceRecognition() {
               <div className="flex flex-col gap-4">
                 {/* Detector Type Selector */}
                 <div className="flex flex-col gap-1.5">
-                  <label className="text-xs font-mono text-zinc-400 uppercase tracking-wider">
+                  <label className="text-xs font-mono text-zinc-500 uppercase tracking-wider">
                     Model Detektor Wajah
                   </label>
                   <div className="grid grid-cols-2 gap-2">
@@ -851,8 +847,8 @@ export default function FaceRecognition() {
                       onClick={() => setDetectorType("tiny")}
                       className={`py-2 px-3 border rounded-xl text-xs font-mono font-semibold transition-all duration-300 ${
                         detectorType === "tiny"
-                          ? "bg-cyan-500/10 border-cyan-500 text-cyan-400"
-                          : "bg-zinc-950 border-zinc-800 text-zinc-400 hover:border-zinc-700"
+                          ? "bg-cyan-50 border-cyan-500 text-cyan-600 shadow-sm"
+                          : "bg-zinc-50 border-zinc-200 text-zinc-500 hover:border-zinc-300"
                       }`}
                     >
                       TINY DETECTOR (Cepat)
@@ -861,8 +857,8 @@ export default function FaceRecognition() {
                       onClick={() => setDetectorType("ssd")}
                       className={`py-2 px-3 border rounded-xl text-xs font-mono font-semibold transition-all duration-300 ${
                         detectorType === "ssd"
-                          ? "bg-cyan-500/10 border-cyan-500 text-cyan-400"
-                          : "bg-zinc-950 border-zinc-800 text-zinc-400 hover:border-zinc-700"
+                          ? "bg-cyan-50 border-cyan-500 text-cyan-600 shadow-sm"
+                          : "bg-zinc-50 border-zinc-200 text-zinc-500 hover:border-zinc-300"
                       }`}
                     >
                       SSD MOBILENET (Akurat)
@@ -873,10 +869,10 @@ export default function FaceRecognition() {
                 {/* Matcher Threshold */}
                 <div className="flex flex-col gap-1.5">
                   <div className="flex justify-between items-center">
-                    <label className="text-xs font-mono text-zinc-400 uppercase tracking-wider">
+                    <label className="text-xs font-mono text-zinc-500 uppercase tracking-wider">
                       Akurasi Kemiripan Minimum
                     </label>
-                    <span className="text-xs font-bold font-mono text-cyan-400">
+                    <span className="text-xs font-bold font-mono text-cyan-600">
                       {Math.round(threshold * 100)}%
                     </span>
                   </div>
@@ -895,9 +891,9 @@ export default function FaceRecognition() {
                         );
                       }
                     }}
-                    className="w-full accent-cyan-500 bg-zinc-950 rounded-lg appearance-none h-2 border border-zinc-800 cursor-pointer"
+                    className="w-full accent-cyan-500 bg-zinc-100 rounded-lg appearance-none h-2 border border-zinc-200 cursor-pointer"
                   />
-                  <span className="text-[10px] text-zinc-500 font-mono">
+                  <span className="text-[10px] text-zinc-400 font-mono">
                     *Makin tinggi persen, pencocokan makin ketat (menghindari
                     salah deteksi).
                   </span>
@@ -910,11 +906,11 @@ export default function FaceRecognition() {
                     id="showLandmarks"
                     checked={showLandmarks}
                     onChange={(e) => setShowLandmarks(e.target.checked)}
-                    className="w-4 h-4 accent-cyan-500 bg-zinc-950 border border-zinc-800 rounded"
+                    className="w-4 h-4 accent-cyan-500 bg-zinc-50 border border-zinc-200 rounded"
                   />
                   <label
                     htmlFor="showLandmarks"
-                    className="text-xs font-semibold text-zinc-300 select-none cursor-pointer"
+                    className="text-xs font-semibold text-zinc-600 select-none cursor-pointer"
                   >
                     Tampilkan Titik Landmark Wajah (Visualizer AI)
                   </label>
@@ -927,11 +923,11 @@ export default function FaceRecognition() {
         {/* RIGHT COLUMN: Dataset List & Logs (5 Cols) */}
         <div className="lg:col-span-5 flex flex-col gap-6">
           {/* TAB SYSTEM: DATASET MAHASISWA & LOG RIWAYAT */}
-          <div className="flex flex-col flex-1 bg-zinc-900/60 border border-zinc-800 rounded-2xl overflow-hidden backdrop-blur-md min-h-[550px] max-h-[600px]">
+          <div className="flex flex-col flex-1 bg-white border border-zinc-200 rounded-2xl overflow-hidden shadow-sm min-h-[550px] max-h-[600px]">
             {/* Headers / Navigation */}
-            <div className="flex bg-zinc-950 border-b border-zinc-800 p-2 gap-2">
-              <div className="flex-1 text-center py-2 px-3 bg-zinc-900 rounded-xl border border-zinc-800/80">
-                <span className="text-xs font-bold font-mono tracking-wider text-cyan-400 block">
+            <div className="flex bg-zinc-50 border-b border-zinc-200 p-2 gap-2">
+              <div className="flex-1 text-center py-2 px-3 bg-white rounded-xl border border-zinc-200/80 shadow-sm">
+                <span className="text-xs font-bold font-mono tracking-wider text-cyan-600 block">
                   DATABASE DATASET ({dataset.length})
                 </span>
               </div>
@@ -946,9 +942,9 @@ export default function FaceRecognition() {
                   placeholder="Cari nama mahasiswa..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full bg-zinc-950 border border-zinc-800 hover:border-zinc-700 rounded-xl pl-10 pr-4 py-2 text-sm text-zinc-300 focus:outline-none focus:border-cyan-500 font-sans"
+                  className="w-full bg-zinc-50 border border-zinc-200 hover:border-zinc-300 rounded-xl pl-10 pr-4 py-2 text-sm text-zinc-700 focus:outline-none focus:border-cyan-500 font-sans"
                 />
-                <div className="absolute left-3.5 top-2.5 text-zinc-500">
+                <div className="absolute left-3.5 top-2.5 text-zinc-400">
                   <svg
                     className="w-4.5 h-4.5"
                     fill="none"
@@ -968,7 +964,7 @@ export default function FaceRecognition() {
               {/* Dataset Scroll Area */}
               <div className="flex-1 overflow-y-auto pr-1 flex flex-col gap-2.5">
                 {filteredDataset.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-12 text-zinc-500 font-mono text-xs">
+                  <div className="flex flex-col items-center justify-center py-12 text-zinc-400 font-mono text-xs">
                     <span>Data mahasiswa tidak ditemukan</span>
                   </div>
                 ) : (
@@ -979,18 +975,17 @@ export default function FaceRecognition() {
                       <div
                         key={student.filename}
                         onClick={() => setSelectedPreviewStudent(student)}
-                        className="flex items-center justify-between p-2.5 bg-zinc-950/80 border border-zinc-800 hover:border-zinc-700/80 rounded-xl transition-all duration-200 cursor-pointer group"
+                        className="flex items-center justify-between p-2.5 bg-zinc-50 border border-zinc-100 hover:border-zinc-200 rounded-xl transition-all duration-200 cursor-pointer group shadow-sm"
                       >
                         <div className="flex items-center gap-3">
                           {/* Mini Thumbnail */}
-                          <div className="w-10 h-10 rounded-lg overflow-hidden bg-zinc-900 border border-zinc-800 flex-shrink-0 relative">
+                          <div className="w-10 h-10 rounded-lg overflow-hidden bg-zinc-100 border border-zinc-200 flex-shrink-0 relative">
                             {/* eslint-disable-next-line @next/next/no-img-element */}
                             <img
                               src={student.url}
                               alt={student.label}
                               className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
                               onError={(e) => {
-                                // Fallback icon
                                 (e.target as HTMLElement).style.display =
                                   "none";
                               }}
@@ -998,10 +993,10 @@ export default function FaceRecognition() {
                           </div>
 
                           <div>
-                            <span className="text-sm font-semibold text-zinc-200 block group-hover:text-cyan-400 transition-colors">
+                            <span className="text-sm font-semibold text-zinc-800 block group-hover:text-cyan-600 transition-colors">
                               {student.label}
                             </span>
-                            <span className="text-[10px] text-zinc-500 font-mono block">
+                            <span className="text-[10px] text-zinc-400 font-mono block">
                               {student.filename}
                             </span>
                           </div>
@@ -1010,19 +1005,19 @@ export default function FaceRecognition() {
                         {/* Status Badge */}
                         <div className="flex items-center gap-2">
                           {studentStatus === "success" && (
-                            <span className="flex items-center gap-1 text-[10px] font-bold font-mono px-2 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400">
-                              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                            <span className="flex items-center gap-1 text-[10px] font-bold font-mono px-2 py-0.5 rounded-full bg-emerald-50 border border-emerald-200/55 text-emerald-600">
+                              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
                               READY
                             </span>
                           )}
                           {studentStatus === "failed" && (
-                            <span className="flex items-center gap-1 text-[10px] font-bold font-mono px-2 py-0.5 rounded-full bg-red-500/10 border border-red-500/20 text-red-400">
+                            <span className="flex items-center gap-1 text-[10px] font-bold font-mono px-2 py-0.5 rounded-full bg-red-50 border border-red-200/55 text-red-600">
                               <span className="w-1.5 h-1.5 rounded-full bg-red-500" />
                               NO FACE
                             </span>
                           )}
                           {studentStatus === "pending" && (
-                            <span className="flex items-center gap-1 text-[10px] font-bold font-mono px-2 py-0.5 rounded-full bg-zinc-800 border border-zinc-700 text-zinc-400 animate-pulse">
+                            <span className="flex items-center gap-1 text-[10px] font-bold font-mono px-2 py-0.5 rounded-full bg-zinc-100 border border-zinc-200 text-zinc-500 animate-pulse">
                               WAITING
                             </span>
                           )}
@@ -1036,16 +1031,16 @@ export default function FaceRecognition() {
           </div>
 
           {/* PRESENCE LOGS CARD */}
-          <div className="flex flex-col flex-1 bg-zinc-900/60 border border-zinc-800 rounded-2xl overflow-hidden backdrop-blur-md min-h-[350px] max-h-[400px]">
-            <div className="bg-zinc-950 border-b border-zinc-800 p-4 flex justify-between items-center">
-              <h2 className="text-sm font-bold font-mono tracking-wider text-emerald-400 uppercase flex items-center gap-2">
+          <div className="flex flex-col flex-1 bg-white border border-zinc-200 rounded-2xl overflow-hidden shadow-sm min-h-[350px] max-h-[400px]">
+            <div className="bg-zinc-50 border-b border-zinc-200 p-4 flex justify-between items-center">
+              <h2 className="text-sm font-bold font-mono tracking-wider text-emerald-600 uppercase flex items-center gap-2">
                 <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-ping" />
                 RIWAYAT PRESENSI KEHADIRAN (LIVE)
               </h2>
               {logs.length > 0 && (
                 <button
                   onClick={() => setLogs([])}
-                  className="text-[10px] font-bold font-mono hover:text-red-400 text-zinc-500 uppercase transition-colors"
+                  className="text-[10px] font-bold font-mono hover:text-red-500 text-zinc-400 uppercase transition-colors"
                 >
                   CLEAR LOG
                 </button>
@@ -1054,9 +1049,9 @@ export default function FaceRecognition() {
 
             <div className="flex-1 p-4 overflow-y-auto flex flex-col gap-2">
               {logs.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-16 text-zinc-500 font-mono text-xs h-full">
+                <div className="flex flex-col items-center justify-center py-16 text-zinc-400 font-mono text-xs h-full">
                   <span>Belum ada wajah mahasiswa terdeteksi</span>
-                  <span className="text-[10px] text-zinc-600 mt-1">
+                  <span className="text-[10px] text-zinc-400 mt-1">
                     Nyalakan kamera & dekatkan wajah ke lensa
                   </span>
                 </div>
@@ -1064,11 +1059,11 @@ export default function FaceRecognition() {
                 logs.map((log) => (
                   <div
                     key={log.id}
-                    className="flex items-center justify-between p-2.5 bg-zinc-950/40 border border-zinc-800/60 rounded-xl animate-[fadeIn_0.3s_ease-out]"
+                    className="flex items-center justify-between p-2.5 bg-zinc-50 border border-zinc-100 rounded-xl animate-[fadeIn_0.3s_ease-out] shadow-sm"
                   >
                     <div className="flex items-center gap-3">
                       {/* Student Profile Thumbnail */}
-                      <div className="w-8 h-8 rounded-lg overflow-hidden bg-zinc-900 border border-zinc-800 flex-shrink-0">
+                      <div className="w-8 h-8 rounded-lg overflow-hidden bg-zinc-100 border border-zinc-200 flex-shrink-0">
                         {/* eslint-disable-next-line @next/next/no-img-element */}
                         <img
                           src={log.photoUrl || ""}
@@ -1081,12 +1076,12 @@ export default function FaceRecognition() {
                       </div>
 
                       <div>
-                        <span className="text-xs font-semibold text-zinc-200 block">
+                        <span className="text-xs font-semibold text-zinc-800 block">
                           {log.name}
                         </span>
                         <span className="text-[9px] text-zinc-500 font-mono block">
                           Kemiripan:{" "}
-                          <span className="text-emerald-400 font-bold">
+                          <span className="text-emerald-600 font-bold">
                             {log.confidence}%
                           </span>
                         </span>
@@ -1094,10 +1089,10 @@ export default function FaceRecognition() {
                     </div>
 
                     <div className="text-right">
-                      <span className="text-[10px] font-bold font-mono px-2 py-0.5 rounded-lg bg-emerald-500/10 border border-emerald-500/10 text-emerald-400 block">
+                      <span className="text-[10px] font-bold font-mono px-2 py-0.5 rounded-lg bg-emerald-50 border border-emerald-200/50 text-emerald-600 block">
                         HADIR
                       </span>
-                      <span className="text-[9px] text-zinc-500 font-mono block mt-0.5">
+                      <span className="text-[9px] text-zinc-400 font-mono block mt-0.5">
                         {log.timestamp}
                       </span>
                     </div>
@@ -1111,16 +1106,16 @@ export default function FaceRecognition() {
 
       {/* STUDENT PREVIEW MODAL */}
       {selectedPreviewStudent && (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-[fadeIn_0.2s_ease-out]">
-          <div className="bg-zinc-900 border border-zinc-800 w-full max-w-md rounded-2xl overflow-hidden shadow-2xl relative">
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-[fadeIn_0.2s_ease-out]">
+          <div className="bg-white border border-zinc-200 w-full max-w-md rounded-2xl overflow-hidden shadow-2xl relative">
             {/* Modal Header */}
-            <div className="p-4 border-b border-zinc-800 flex justify-between items-center bg-zinc-950">
-              <span className="text-sm font-bold font-mono tracking-wider text-cyan-400">
+            <div className="p-4 border-b border-zinc-200 flex justify-between items-center bg-zinc-50">
+              <span className="text-sm font-bold font-mono tracking-wider text-cyan-600">
                 DETAIL MAHASISWA
               </span>
               <button
                 onClick={() => setSelectedPreviewStudent(null)}
-                className="text-zinc-500 hover:text-zinc-300 p-1 transition-colors"
+                className="text-zinc-400 hover:text-zinc-600 p-1 transition-colors"
               >
                 <svg
                   className="w-5 h-5"
@@ -1140,7 +1135,7 @@ export default function FaceRecognition() {
 
             {/* Modal Content */}
             <div className="p-6 flex flex-col items-center gap-4">
-              <div className="w-64 h-64 rounded-xl overflow-hidden border border-zinc-800 bg-zinc-950 relative shadow-inner">
+              <div className="w-64 h-64 rounded-xl overflow-hidden border border-zinc-200 bg-zinc-50 relative shadow-inner">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   src={selectedPreviewStudent.url}
@@ -1150,24 +1145,24 @@ export default function FaceRecognition() {
               </div>
 
               <div className="text-center">
-                <h3 className="text-xl font-bold text-zinc-100">
+                <h3 className="text-xl font-bold text-zinc-800">
                   {selectedPreviewStudent.label}
                 </h3>
-                <p className="text-xs font-mono text-zinc-500 mt-1">
+                <p className="text-xs font-mono text-zinc-400 mt-1">
                   {selectedPreviewStudent.filename}
                 </p>
               </div>
 
               <div className="w-full grid grid-cols-2 gap-3 text-center mt-2 text-xs font-mono">
-                <div className="bg-zinc-950 p-2.5 rounded-xl border border-zinc-800">
-                  <span className="text-zinc-500 block text-[9px] uppercase">
+                <div className="bg-zinc-50 p-2.5 rounded-xl border border-zinc-150 shadow-sm">
+                  <span className="text-zinc-400 block text-[9px] uppercase">
                     Status AI
                   </span>
                   <span
                     className={`font-bold mt-0.5 block ${
                       studentStatuses[selectedPreviewStudent.label] ===
                       "success"
-                        ? "text-emerald-400"
+                        ? "text-emerald-600"
                         : "text-amber-500"
                     }`}
                   >
@@ -1177,11 +1172,11 @@ export default function FaceRecognition() {
                   </span>
                 </div>
 
-                <div className="bg-zinc-950 p-2.5 rounded-xl border border-zinc-800">
-                  <span className="text-zinc-500 block text-[9px] uppercase">
+                <div className="bg-zinc-50 p-2.5 rounded-xl border border-zinc-150 shadow-sm">
+                  <span className="text-zinc-400 block text-[9px] uppercase">
                     Jumlah Foto
                   </span>
-                  <span className="text-cyan-400 font-bold mt-0.5 block">
+                  <span className="text-cyan-600 font-bold mt-0.5 block">
                     1 Gambar
                   </span>
                 </div>
@@ -1189,10 +1184,10 @@ export default function FaceRecognition() {
             </div>
 
             {/* Modal Footer */}
-            <div className="p-4 bg-zinc-950 border-t border-zinc-800 flex justify-end">
+            <div className="p-4 bg-zinc-50 border-t border-zinc-200 flex justify-end">
               <button
                 onClick={() => setSelectedPreviewStudent(null)}
-                className="px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-xs font-semibold rounded-xl transition-colors text-zinc-200"
+                className="px-4 py-2 bg-zinc-100 hover:bg-zinc-200 text-xs font-semibold rounded-xl transition-colors text-zinc-700 border border-zinc-200/50"
               >
                 Tutup
               </button>
